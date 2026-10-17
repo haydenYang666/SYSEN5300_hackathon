@@ -372,3 +372,28 @@ details summary { cursor: pointer; font-weight: 600; margin-top: 10px; }
 .live-simulation .simulation-controls select { display: block; width: 100%; margin-top: 4px; }
 .live-simulation .simulation-state { font-family: var(--mono); font-weight: 600; font-variant-numeric: tabular-nums; }
 .live-simulation .simulation-context { border-left: 3px solid var(--pending); }
+
+/* illustrative map (simulated positions) */
+.sim-badge { font-family: var(--mono); font-size: .66rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  background: var(--pending-soft); color: var(--pending); border: 1px dashed var(--pending); border-radius: 5px; padding: 3px 8px; }
+.map-wrap { position: relative; }
+.map { width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); }
+.mapgrid { fill: none; stroke: var(--grid); stroke-width: 1; }
+.zone-shape { stroke-width: 1.5; cursor: pointer; transition: fill .15s; }
+.zone-shape.zhi { fill: var(--signal-soft); stroke: var(--signal); }
+.zone-shape.zlo { fill: var(--good-soft); stroke: var(--good); }
+.zone-shape.zwait { fill: var(--pending-soft); stroke: var(--pending); stroke-dasharray: 5 4; }
+.zone-shape.zna { fill: var(--surface); stroke: var(--line); stroke-dasharray: 3 4; }
+.zone-shape.zok { fill: var(--surface); stroke: var(--limit); }
+.zone-shape.on { stroke-width: 3; }
+.zone-shape:hover { filter: brightness(0.97); }
+.dot { fill: var(--signal); stroke: none; cursor: pointer; }
+.dot-ring { fill: none; stroke: var(--ink); stroke-width: 1.5; pointer-events: none; }
+.zone-label { pointer-events: none; }
+.zone-label .zn { font-family: var(--display); text-transform: var(--display-case); font-weight: var(--display-weight); font-size: 17px; fill: var(--ink); }
+.zone-label .zs { font-family: var(--mono); font-size: 11px; fill: var(--muted); }
+.map-tip { transform: translate(-50%, calc(-100% - 14px)); }
+.swatch { display: inline-block; width: 14px; height: 10px; border-radius: 3px; border: 1.5px solid; }
+.swatch.zhi { background: var(--signal-soft); border-color: var(--signal); }
+.swatch.zwait { background: var(--pending-soft); border-color: var(--pending); border-style: dashed; }
+.swatch.zok { background: var(--surface); border-color: var(--limit); }

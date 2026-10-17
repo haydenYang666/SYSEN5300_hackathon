@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import PChart, { shortDate } from '../components/PChart.jsx'
+import IllustrativeMap from '../components/IllustrativeMap.jsx'
 import { BASELINE_STATUS, pct, reasonText, reasonsText, statusInfo } from '../status.js'
 import { showNy } from '../time.js'
 import { calendarScale, consecutiveRuns, observedSpan } from '../chart-dates.js'
@@ -257,6 +258,8 @@ export default function ZoneMonitoring({ res, busy, source, onToggleReviewed, on
           <button data-focus-target="incident-link" className="link" onClick={() => onViewIncidents(zone, day)}>Open all in Incident Review →</button>
         </section>
       )}
+
+      <IllustrativeMap res={res} zone={zone} day={day} onPickZone={(z) => pick(z, day)} onViewIncidents={onViewIncidents} />
 
       <section className="panel" id="review">
         <div className="panel-head">
