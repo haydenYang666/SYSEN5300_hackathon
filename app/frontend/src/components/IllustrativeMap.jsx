@@ -62,6 +62,19 @@ const centroid = (r) => {
   return [cx / (3 * a), cy / (3 * a)]
 }
 const boroughOf = (z) => NYC.boroughs.find((b) => b.name.toLowerCase() === String(z).toLowerCase())
+// order used to host zones that are not boroughs (synthetic labels such as A, B)
+const HOST_ORDER = ['Brooklyn', 'Queens', 'Manhattan', 'Bronx', 'Staten Island']
+
+// zone -> the borough it is drawn on: its own borough if it is one, otherwise
+// the next unused borough. Null when there are more zones than boroughs.
+function hostBoroughs(zones) {
+  if (zones.length === 0 || zones.length > NYC.boroughs.length) return null
+  const host = {}
+  zones.forEach((z) => { const b = boroughOf(z); if (b) host[z] = b })
+  const free = HOST_ORDER.map(boroughOf).filter((b) => b && !Object.values(host).includes(b))
+  zones.forEach((z) => { if (!host[z]) host[z] = free.shift() })
+  return host
+}
 
 export default function IllustrativeMap({ res, zone, day, onPickZone, onViewIncidents }) {
   const [scope, setScope] = useState('day')
@@ -69,12 +82,14 @@ export default function IllustrativeMap({ res, zone, day, onPickZone, onViewInci
   const target = res.meta.target_minutes
   const zones = res.zone_baselines.map((b) => b.zone)
 
-  const real = zones.length > 0 && zones.every((z) => boroughOf(z))
+  const host = useMemo(() => hostBoroughs(zones), [zones.join('|')]) // eslint-disable-line react-hooks/exhaustive-deps
+  const real = host != null
+  const stand = real ? zones.filter((z) => !boroughOf(z)) : [] // zones drawn on a borough they are not
 
   const layout = useMemo(() => {
     if (real) {
       return Object.fromEntries(zones.map((z) => {
-        const b = boroughOf(z)
+        const b = host[z]
         const xs = b.rings.flat().map((p) => p[0]), ys = b.rings.flat().map((p) => p[1])
         const box = [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)]
         const [lx, ly] = centroid(b.rings[0])
@@ -110,7 +125,7 @@ export default function IllustrativeMap({ res, zone, day, onPickZone, onViewInci
         },
       }]
     }))
-  }, [zones.join('|'), real]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [zones.join('|'), host]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const all = res.late_incidents.filter((i) => i.phase === 'monitoring' && (scope === 'period' || i.date === day))
   const shown = all.slice(0, MAX_DOTS)
@@ -162,7 +177,7 @@ export default function IllustrativeMap({ res, zone, day, onPickZone, onViewInci
             </pattern>
           </defs>
           <rect width={W} height={H} fill="url(#mapgrid)" />
-          {real && NYC.boroughs.filter((b) => !zones.some((z) => z.toLowerCase() === b.name.toLowerCase())).map((b) => {
+          {real && NYC.boroughs.filter((b) => !Object.values(host).includes(b)).map((b) => {
             const [x, y] = centroid(b.rings[0])
             return (
               <g key={b.name} className="borough-ctx">
@@ -187,7 +202,7 @@ export default function IllustrativeMap({ res, zone, day, onPickZone, onViewInci
             const hi = sigs(b.zone, 'high')
             return (
               <g key={`l${b.zone}`} className="zone-label" transform={`translate(${L.label[0]},${L.label[1]})`}>
-                <text textAnchor="middle" className="zn">{b.zone}</text>
+                <text textAnchor="middle" className="zn">{stand.includes(b.zone) ? `Zone ${b.zone}` : b.zone}</text>
                 <text textAnchor="middle" y="16" className="zs">
                   {`${count(b.zone)} late${scope === 'day' && day ? ` on ${shortDate(day)}` : ''}${hi ? ` · ${hi} high day${hi > 1 ? 's' : ''}` : ''}`}
                 </text>
@@ -214,8 +229,10 @@ export default function IllustrativeMap({ res, zone, day, onPickZone, onViewInci
       <p className="read">
         {real ? (
           <><b>Real borough outlines, simulated positions.</b> Outlines are the official NYC borough boundaries (NYC Open
-          Data, Borough Boundaries). The data record only the borough, so each dot is placed at a fixed random point
-          inside its borough: its position inside the borough carries no meaning.</>
+          Data, Borough Boundaries).{stand.length > 0
+            ? ` This dataset's zone${stand.length > 1 ? 's' : ''} ${stand.join(', ')} ${stand.length > 1 ? 'are' : 'is'} not real place${stand.length > 1 ? 's' : ''}; for illustration ${stand.map((z) => `${z} is drawn on ${host[z].name}`).join(' and ')}.`
+            : ' The data record only the borough.'} Each dot is placed at a fixed random point inside its
+          zone&rsquo;s outline: its position there carries no meaning.</>
         ) : (
           <><b>Simulated positions.</b> The datasets record only a zone label, not coordinates, so zone shapes and dot
           positions here are generated and carry no geographic meaning.</>
