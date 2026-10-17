@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { showNy } from '../time.js'
 import { shortDate } from './PChart.jsx'
+import NYC from '../geo/nyc-boroughs.json'
 
 // ILLUSTRATIVE map. The data have no coordinates (only a zone label), so the
 // zone shapes, their layout and every dot's position are SIMULATED: a fixed
@@ -41,13 +42,55 @@ function blob(cx, cy, rx, ry, seed) {
   return `${d} Z`
 }
 
+// --- real NYC borough outlines (NYC Open Data), used when every zone is a borough ---
+const ringPath = (r) => `M${r.map((p) => p.join(',')).join('L')}Z`
+const inRing = ([x, y], r) => {
+  let inside = false
+  for (let i = 0, j = r.length - 1; i < r.length; j = i++) {
+    const [xi, yi] = r[i], [xj, yj] = r[j]
+    if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside
+  }
+  return inside
+}
+const centroid = (r) => {
+  let a = 0, cx = 0, cy = 0
+  r.forEach(([x1, y1], i) => {
+    const [x2, y2] = r[(i + 1) % r.length]
+    const f = x1 * y2 - x2 * y1
+    a += f; cx += (x1 + x2) * f; cy += (y1 + y2) * f
+  })
+  return [cx / (3 * a), cy / (3 * a)]
+}
+const boroughOf = (z) => NYC.boroughs.find((b) => b.name.toLowerCase() === String(z).toLowerCase())
+
 export default function IllustrativeMap({ res, zone, day, onPickZone, onViewIncidents }) {
   const [scope, setScope] = useState('day')
   const [hover, setHover] = useState(null)
   const target = res.meta.target_minutes
   const zones = res.zone_baselines.map((b) => b.zone)
 
+  const real = zones.length > 0 && zones.every((z) => boroughOf(z))
+
   const layout = useMemo(() => {
+    if (real) {
+      return Object.fromEntries(zones.map((z) => {
+        const b = boroughOf(z)
+        const xs = b.rings.flat().map((p) => p[0]), ys = b.rings.flat().map((p) => p[1])
+        const box = [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)]
+        const [lx, ly] = centroid(b.rings[0])
+        return [z, {
+          d: b.rings.map(ringPath).join(''), label: [lx, ly],
+          // a fixed random point inside the real outline (rejection sampling)
+          place: (r) => {
+            for (let k = 0; k < 80; k++) {
+              const pt = [box[0] + r() * (box[2] - box[0]), box[1] + r() * (box[3] - box[1])]
+              if (b.rings.some((ring) => inRing(pt, ring))) return pt
+            }
+            return [lx, ly]
+          },
+        }]
+      }))
+    }
     const n = zones.length
     const cols = n <= 3 ? n : Math.ceil(Math.sqrt(n))
     const rows = Math.ceil(n / cols)
@@ -58,9 +101,16 @@ export default function IllustrativeMap({ res, zone, day, onPickZone, onViewInci
       const cy = ch * (Math.floor(i / cols) + 0.5) + 20
       const rx = cw * 0.42
       const ry = ch * 0.34
-      return [z, { cx, cy, rx, ry, d: blob(cx, cy, rx, ry, z) }]
+      return [z, {
+        d: blob(cx, cy, rx, ry, z), label: [cx, cy - ry * 1.06 - 26],
+        place: (r) => {
+          const a = r() * Math.PI * 2
+          const rad = Math.sqrt(r()) * 0.8
+          return [cx + Math.cos(a) * rad * rx, cy + Math.sin(a) * rad * ry]
+        },
+      }]
     }))
-  }, [zones.join('|')]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [zones.join('|'), real]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const all = res.late_incidents.filter((i) => i.phase === 'monitoring' && (scope === 'period' || i.date === day))
   const shown = all.slice(0, MAX_DOTS)
@@ -68,11 +118,10 @@ export default function IllustrativeMap({ res, zone, day, onPickZone, onViewInci
   const dots = shown.map((i) => {
     const L = layout[i.zone]
     if (!L) return null
-    const r = rng(`pos:${i.incident_id}:${i.row_number}`)
-    const a = r() * Math.PI * 2
-    const rad = Math.sqrt(r()) * 0.8
+    const [x, y] = L.place(rng(`pos:${i.incident_id}:${i.row_number}`))
     const sev = Math.min(1, (i.response_minutes - target) / (maxMin - target))
-    return { i, x: L.cx + Math.cos(a) * rad * L.rx, y: L.cy + Math.sin(a) * rad * L.ry, s: 1.8 + sev * 3.4, o: 0.35 + sev * 0.6 }
+    const k = real ? 0.7 : 1 // smaller dots on the real, denser map
+    return { i, x, y, s: (1.8 + sev * 3.4) * k, o: 0.35 + sev * 0.6 }
   }).filter(Boolean)
 
   const count = (z) => all.filter((i) => i.zone === z).length
@@ -113,6 +162,15 @@ export default function IllustrativeMap({ res, zone, day, onPickZone, onViewInci
             </pattern>
           </defs>
           <rect width={W} height={H} fill="url(#mapgrid)" />
+          {real && NYC.boroughs.filter((b) => !zones.some((z) => z.toLowerCase() === b.name.toLowerCase())).map((b) => {
+            const [x, y] = centroid(b.rings[0])
+            return (
+              <g key={b.name} className="borough-ctx">
+                <path d={b.rings.map(ringPath).join('')} />
+                <text x={x} y={y} textAnchor="middle">{b.name}</text>
+              </g>
+            )
+          })}
           {res.zone_baselines.map((b) => (
             <path key={b.zone} d={layout[b.zone].d} className={`zone-shape ${zoneClass(b)}${b.zone === zone ? ' on' : ''}`}
               onClick={() => onPickZone(b.zone)}>
@@ -128,7 +186,7 @@ export default function IllustrativeMap({ res, zone, day, onPickZone, onViewInci
             const L = layout[b.zone]
             const hi = sigs(b.zone, 'high')
             return (
-              <g key={`l${b.zone}`} className="zone-label" transform={`translate(${L.cx},${L.cy - L.ry * 1.06 - 26})`}>
+              <g key={`l${b.zone}`} className="zone-label" transform={`translate(${L.label[0]},${L.label[1]})`}>
                 <text textAnchor="middle" className="zn">{b.zone}</text>
                 <text textAnchor="middle" y="16" className="zs">
                   {`${count(b.zone)} late${scope === 'day' && day ? ` on ${shortDate(day)}` : ''}${hi ? ` · ${hi} high day${hi > 1 ? 's' : ''}` : ''}`}
@@ -154,8 +212,14 @@ export default function IllustrativeMap({ res, zone, day, onPickZone, onViewInci
         <span><span className="swatch zok" />no signals</span>
       </div>
       <p className="read">
-        <b>Simulated positions.</b> The datasets record only a zone label, not coordinates, so zone shapes and dot
-        positions here are generated and carry no geographic meaning. The number of dots, their zone, date and
+        {real ? (
+          <><b>Real borough outlines, simulated positions.</b> Outlines are the official NYC borough boundaries (NYC Open
+          Data, Borough Boundaries). The data record only the borough, so each dot is placed at a fixed random point
+          inside its borough: its position inside the borough carries no meaning.</>
+        ) : (
+          <><b>Simulated positions.</b> The datasets record only a zone label, not coordinates, so zone shapes and dot
+          positions here are generated and carry no geographic meaning.</>
+        )} The number of dots, their zone, date and
         response minutes, and each zone&rsquo;s signal state are real API output. With incident coordinates logged
         by the dispatch system, the same view would show where slow responses cluster inside a zone.
         {all.length > MAX_DOTS && ` Showing the first ${MAX_DOTS} of ${all.length} late responses.`}

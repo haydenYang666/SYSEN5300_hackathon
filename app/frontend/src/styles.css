@@ -484,3 +484,6 @@ details summary { cursor: pointer; font-weight: 600; margin-top: 10px; }
 .team-robot { display: grid; place-items: center; overflow: hidden; }
 .team-robot svg { width: 52px; height: 52px; margin-top: 8px; }
 .team-card-head h2 .chip { vertical-align: middle; margin-left: 4px; }
+.borough-ctx path { fill: var(--surface); stroke: var(--line); stroke-width: 1; }
+.borough-ctx text { font-family: var(--mono); font-size: 10px; fill: var(--muted); }
+.zone-label text { paint-order: stroke; stroke: var(--surface-2); stroke-width: 4px; stroke-linejoin: round; }
