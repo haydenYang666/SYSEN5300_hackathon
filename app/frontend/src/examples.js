@@ -24,5 +24,5 @@ export const EXAMPLES = {
     settings: { ...SYN, as_of: '2026-10-01T12:00:00' } },
 }
 
-/** First-visit default: the planted shift shows signals within seconds. ?example=<key> overrides it. */
-export const DEFAULT_EXAMPLE = 'zone_shift'
+/** First-visit default: the real NYC EMS extract (public data). ?example=<key> overrides it. */
+export const DEFAULT_EXAMPLE = 'nyc'

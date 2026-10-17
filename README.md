@@ -16,9 +16,10 @@ in the team ledger; available deployment evidence is linked below.
 
 ## Try the dashboard
 
-A first visit loads the synthetic `zone_shift.csv` example (a planted deterioration in zone A) and
-analyzes it with the real API; click **Confirm all usable baselines** to see its 8 high-signal days.
-Append `?example=stable`, `?example=nyc` or `?example=edge_cases` to open another example. Read the source label: **Jingyao's three examples are synthetic; the NYC extract
+A first visit loads the real NYC EMS extract (`real_nyc_brooklyn_queens_sev2.csv`: public NYC Open Data,
+priority 2, Brooklyn and Queens) and analyzes it with the real API; click **Confirm all usable baselines**
+to see its 8 high-signal days (6 in Brooklyn, 2 in Queens). Append `?example=zone_shift`, `?example=stable`
+or `?example=edge_cases` to open a synthetic example. Read the source label: **Jingyao's three examples are synthetic; the NYC extract
 is real public data**. Baselines start unreviewed. For an empty starting screen, append
 `?example=none` to the dashboard URL.
 

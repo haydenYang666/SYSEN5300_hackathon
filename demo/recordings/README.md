@@ -10,10 +10,10 @@ To follow the same demonstration yourself:
 
 ## Live session flow
 
-1. Open the dashboard. A first visit loads the synthetic `zone_shift.csv` example and opens Zone Monitoring.
-2. Click **Confirm all usable baselines**. Zone A shows 8 high-signal days above its 25.1% limit; zone B shows none.
-3. Hover the chart and click September 22: 41 of 100 responses were late. The slowest arrivals appear below.
-4. On **Data & Settings**, use **Try an example** to load the real NYC extract (priority 2), then confirm Brooklyn and Queens: 8 high-signal days.
+1. Open the dashboard. A first visit loads the real NYC EMS extract (Brooklyn and Queens, priority 2) and opens Zone Monitoring.
+2. Click **Confirm all usable baselines**. Brooklyn shows 6 high-signal days and Queens 2 (8 in total).
+3. Select Queens and click September 6: 94 of 181 responses were late (51.9%, above its 45.1% limit). The slowest arrivals appear below.
+4. On **Data & Settings**, use **Try an example** to load the synthetic `zone_shift.csv`, then confirm: zone A shows 8 high-signal days above its 25.1% limit; zone B shows none.
 5. Optionally load `edge_cases.csv` to show excluded rows, insufficient data and the provisional current day.
 
 The numbers above are verified in the browser on the live site; see [`app/frontend/acceptance/`](../../app/frontend/acceptance/README.md).
