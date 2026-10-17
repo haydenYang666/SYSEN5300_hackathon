@@ -3,6 +3,8 @@ import { API_URL, MOCK, analyze, health, mockScenarios } from './api.js'
 import { parseIncidents } from './csv.js'
 import { DEFAULT_EXAMPLE, EXAMPLES } from './examples.js'
 import { createRequestLifecycle } from './request-lifecycle.js'
+import { createAnalysisSession } from './analysis-session.js'
+import { UNKNOWN_SOURCE, provenanceText } from './provenance.js'
 import { pct } from './status.js'
 import { TZ, nyLocalToIso, nyMidnightIso, showNy } from './time.js'
 import DataSettings from './views/DataSettings.jsx'
@@ -23,14 +25,18 @@ export default function App() {
   const [page, setPage] = useState('data')
   const [records, setRecords] = useState([])
   const [source, setSource] = useState('')
+  const [provenance, setProvenance] = useState(UNKNOWN_SOURCE)
   const [settings, setSettings] = useState(DEFAULT_SETTINGS)
   const [result, setResult] = useState(null) // { res, serverClock }
   const [busy, setBusy] = useState(false)
   const [errors, setErrors] = useState([])
   const [focus, setFocus] = useState({ zone: '', date: '' })
+  const [selection, setSelection] = useState({ zone: '', date: '' })
   const [api, setApi] = useState({ state: 'checking' })
   const [mock, setMock] = useState(null) // { scenarios, csv, picked }
   const errorRef = useRef(null)
+  const mainRef = useRef(null)
+  const focusTarget = useRef(null)
   const initialExample = useRef(undefined)
   const [requests] = useState(() => createRequestLifecycle({
     analyze,
@@ -38,9 +44,13 @@ export default function App() {
     onBusy: setBusy,
     onErrors: setErrors,
     onResult: setResult,
-    onDataset: ({ records: next, source: label, settings: nextSettings }) => {
+    onDataset: ({ records: next, source: label, settings: nextSettings, provenance: origin,
+      selection: nextSelection, focus: nextFocus }) => {
       setRecords(next)
       setSource(label)
+      setProvenance(origin ?? UNKNOWN_SOURCE)
+      setSelection(nextSelection ?? { zone: '', date: '' })
+      setFocus(nextFocus ?? { zone: '', date: '' })
       setResult(null)
       if (nextSettings) setSettings(nextSettings)
       else {
@@ -49,8 +59,11 @@ export default function App() {
           ? current : { ...current, selected_priority: priorities[0] ?? '' })
       }
     },
-    onNavigate: (operation) => setPage((current) =>
-      operation.isCurrent() && current !== 'simulation' ? 'zones' : current),
+    onNavigate: (operation) => setPage((current) => {
+      if (!operation.isCurrent() || current === 'simulation') return current
+      focusTarget.current = 'chart'
+      return 'zones'
+    }),
   }))
   const [theme, setTheme] = useState(() => {
     try { return localStorage.getItem('theme') || 'auto' } catch { return 'auto' }
@@ -69,6 +82,25 @@ export default function App() {
     if (errors.length) errorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }, [errors])
 
+  // A page transition must leave keyboard users at the destination content.
+  // Focus only after intentional navigation; analysis refreshes keep focus put.
+  useEffect(() => {
+    if (!focusTarget.current || !mainRef.current) return
+    const target = focusTarget.current
+    focusTarget.current = null
+    const visible = (selector) => [...mainRef.current.querySelectorAll(selector)]
+      .find((node) => !node.closest('[hidden]'))
+    const node = visible(`[data-focus-target="${target}"]`)
+      ?? visible('h1, h2') ?? mainRef.current
+    if (!node.hasAttribute('tabindex') && node.tagName !== 'BUTTON') node.tabIndex = -1
+    node.focus()
+  }, [page])
+
+  function navigate(next, target = 'page') {
+    focusTarget.current = target
+    setPage(next)
+  }
+
   useEffect(() => {
     let active = true
     health()
@@ -81,7 +113,12 @@ export default function App() {
   // Any change to data or settings makes the old result stale: drop it, and
   // with it every baseline confirmation. A new Run analysis is required.
   const invalidate = () => { requests.cancel(); setResult(null) }
-  const changeRecords = (next, label) => { setRecords(next); if (label !== undefined) setSource(label); invalidate() }
+  const changeRecords = (next, label) => {
+    setRecords(next)
+    if (label !== undefined) setSource(label)
+    setProvenance({ kind: 'mixed', label: 'Records edited in this browser' })
+    invalidate()
+  }
   const changeSettings = (patch) => { setSettings((s) => ({ ...s, ...patch })); invalidate() }
 
   // MOCK only: load a scenario's records and its fixed settings into the session.
@@ -90,6 +127,7 @@ export default function App() {
     setMock({ ...mock, picked: name })
     if (!sc) return
     changeRecords(parseIncidents(mock.csv(name)), `MOCK scenario "${name}"`)
+    setProvenance({ kind: 'mock', label: `MOCK scenario ${name}` })
     changeSettings({
       selected_priority: sc.settings.selected_priority,
       target_minutes: String(sc.settings.target_minutes),
@@ -172,7 +210,32 @@ export default function App() {
 
   function viewIncidents(zone, date) {
     setFocus({ zone, date })
-    setPage('incidents')
+    setSelection((current) => ({ zone: zone || current.zone, date: date || current.date }))
+    navigate('incidents', 'incidents')
+  }
+
+  function changeFocus(next) {
+    setFocus(next)
+    setSelection((current) => ({ zone: next.zone || current.zone, date: next.date }))
+  }
+
+  function importFile(file) {
+    return requests.importFile(file, {
+      buildRequest: (session) => buildRequest(session.reviewedZones, session.asOf, session),
+      mockScenario: mock?.picked,
+    })
+  }
+
+  function exportSession() {
+    try {
+      const snapshot = createAnalysisSession({ records, source, provenance, settings, result, selection, focus })
+      const url = URL.createObjectURL(new Blob([JSON.stringify(snapshot, null, 2) + '\n'], { type: 'application/json' }))
+      const link = document.createElement('a')
+      link.href = url; link.download = 'response-analysis.json'; link.click()
+      setTimeout(() => URL.revokeObjectURL(url), 1000)
+    } catch (error) {
+      setErrors([`Could not export analysis: ${error.message}`])
+    }
   }
 
   const res = result?.res ?? null
@@ -192,7 +255,7 @@ export default function App() {
           </div>
           <div className="tabs">
             {PAGES.map(([key, label]) => (
-              <button key={key} className={page === key ? 'tab on' : 'tab'} onClick={() => setPage(key)}
+              <button key={key} className={page === key ? 'tab on' : 'tab'} onClick={() => navigate(key)}
                 aria-current={page === key ? 'page' : undefined}>
                 {label}
                 {key === 'data' && res && <span className="done" aria-label="analysis ready">✓</span>}
@@ -202,7 +265,7 @@ export default function App() {
           <div className="pills">
             <span className={`pill ${MOCK ? 'down' : api.state}`} title={MOCK ? 'Mock mode' : `API at ${API_URL}`}>
               <span className="dot" />
-              {MOCK ? 'mock mode' : api.state === 'ok' ? `API · ${api.mode ?? 'unknown'} mode` : api.state === 'down' ? 'API unreachable' : 'API · checking'}
+              {MOCK ? 'mock calculations' : api.state === 'ok' ? `API · ${api.mode === 'real' ? 'real calculations' : api.mode ?? 'unknown'}` : api.state === 'down' ? 'API unreachable' : 'API · checking'}
             </span>
             {page !== 'simulation' && res && <span className="pill">as of {asOfShort(res.meta.as_of)}</span>}
             <button className="pill theme" onClick={cycleTheme} title="Switch light / dark theme">
@@ -233,7 +296,7 @@ export default function App() {
       )}
 
       <div className="page">
-        {page !== 'simulation' && <ContextBar result={result} settings={settings} records={records} source={source} />}
+        {page !== 'simulation' && <ContextBar result={result} settings={settings} records={records} source={source} provenance={provenance} />}
 
         {page !== 'simulation' && errors.length > 0 && (
           <div className="error" role="alert" ref={errorRef}>
@@ -241,24 +304,25 @@ export default function App() {
           </div>
         )}
 
-        <main>
+        <main ref={mainRef} tabIndex={-1}>
           {page === 'data' && (
             <DataSettings
               records={records} source={source} settings={settings} res={res} busy={busy}
               onRecords={changeRecords} onSettings={changeSettings} onRun={() => run([])}
-              onInputIntent={requests.cancel} onImportFile={requests.importFile}
+              onInputIntent={requests.cancel} onImportFile={importFile} onExportSession={exportSession}
               onLoadExample={(k) => loadExample(k, true)}
-              onShowChart={() => setPage('zones')}
+              onShowChart={() => navigate('zones', 'chart')}
             />
           )}
           {page === 'zones' && (
             <ZoneMonitoring
-              res={res} busy={busy} source={source} onToggleReviewed={toggleReviewed} onConfirmAll={confirmAll}
-              onViewIncidents={viewIncidents} onBack={() => setPage('data')}
+              res={res} busy={busy} source={`${source} · ${provenanceText(provenance)}`} onToggleReviewed={toggleReviewed} onConfirmAll={confirmAll}
+              selection={selection} onSelectionChange={setSelection}
+              onViewIncidents={viewIncidents} onBack={() => navigate('data')}
             />
           )}
           {page === 'incidents' && (
-            <IncidentReview res={res} focus={focus} onFocus={setFocus} onBack={() => setPage('zones')} />
+            <IncidentReview res={res} focus={focus} onFocus={changeFocus} onBack={() => navigate('zones', 'incident-link')} />
           )}
           <div hidden={page !== 'simulation'}>
             <LiveSimulation active={page === 'simulation'} />
@@ -277,7 +341,7 @@ function asOfShort(iso) {
   return `${parts.year}-${parts.month}-${parts.day} ${parts.hour === '24' ? '00' : parts.hour}:${parts.minute}`
 }
 
-function ContextBar({ result, settings, records, source }) {
+function ContextBar({ result, settings, records, source, provenance }) {
   const m = result?.res.meta
   const q = result?.res.quality
   const scope = (c) => `${c.usable_rows} usable / ${c.excluded_rows} excluded of ${c.total_rows}`
@@ -285,6 +349,7 @@ function ContextBar({ result, settings, records, source }) {
   return (
     <dl className="context">
       <div><dt>Dataset</dt><dd>{records.length ? source : 'none loaded'}</dd></div>
+      {records.length > 0 && <div><dt>Data origin</dt><dd>{provenanceText(provenance)}</dd></div>}
       <div><dt>Priority</dt><dd>{m?.selected_priority ?? (settings.selected_priority || '—')}</dd></div>
       <div><dt>Late if</dt><dd>{`> ${m?.target_minutes ?? settings.target_minutes} min`}</dd></div>
       <div><dt>Baseline</dt><dd>{cutoff ? `before ${cutoff}` : '—'}</dd></div>

@@ -56,3 +56,40 @@ describe('reviewed baseline does not turn a partial day into a verdict', () => {
     expect(html).not.toContain('<h1>No completed-day verdicts yet</h1>')
   })
 })
+
+describe('persistent chart selection and observed-date wording', () => {
+  const renderSelection = (result, selection) => renderToStaticMarkup(createElement(ZoneMonitoring, {
+    res: result, busy: false, source: 'Synthetic render fixture', selection,
+    onSelectionChange() {}, onToggleReviewed() {}, onViewIncidents() {}, onBack() {},
+  }))
+
+  it('renders the controlled zone and date instead of defaulting to the highest day', () => {
+    const selected = demo.daily_points.find((p) => p.zone === 'B')
+    const html = renderSelection(demo, { zone: 'B', date: selected.date })
+    expect(html).toContain('B · daily share of late arrivals (p chart)')
+    expect(html).toContain(`class="cell ${selected.status === 'high' ? 'hi' : selected.status === 'low' ? 'lo' : selected.status === 'no_signal' ? 'ok' : 'na'} sel"`)
+    expect(html).toContain('data-focus-target="chart" tabindex="-1"')
+    expect(html).toContain('data-focus-target="incident-link"')
+  })
+
+  it('keeps an explicitly selected missing date with an honest empty message', () => {
+    const html = renderSelection(demo, { zone: 'B', date: '2026-08-01' })
+    expect(html).toContain('B · Aug 1 · selected date')
+    expect(html).toContain('No monitoring observation for this zone on 2026-08-01')
+    expect(html).not.toContain('· slowest late responses</h2>')
+  })
+
+  it('labels sparse observations and does not bridge them in the mini chart', () => {
+    const dates = ['2026-08-21', '2026-08-24', '2026-08-28', '2026-09-01', '2026-09-05', '2026-09-10', '2026-09-18']
+    const source = structuredClone(demo)
+    source.zone_baselines = source.zone_baselines.filter((b) => b.zone === 'A')
+    const template = source.daily_points.find((p) => p.zone === 'A')
+    source.daily_points = dates.map((date) => ({ ...template, date }))
+    source.signals = []
+    const html = renderSelection(source, { zone: 'A', date: dates[0] })
+    expect(html).toContain('7 observed monitoring dates · Aug 21–Sep 18 (29 calendar days)')
+    expect(html).toContain('1 cell = 1 observed date; gaps omitted')
+    expect(html.match(/data-spark-segment="point"/g)).toHaveLength(7)
+    expect(html).not.toContain('data-spark-segment="line"')
+  })
+})

@@ -1,0 +1,12 @@
+incident_id,zone,priority,dispatched_at,on_scene_at,unit_code,review_note,provenance
+SYN-MAYA-001,A,P1,2026-09-01T08:00:00-04:00,2026-09-01T08:10:00-04:00,001,"artificial, exact target",synthetic QA only
+SYN-MAYA-002,A,P1,2026-09-22T08:00:00-04:00,2026-09-22T08:11:00-04:00,002,"synthetic ""quoted"" note",synthetic QA only
+SYN-MAYA-003,B,P2,2026-09-22T09:00:00-04:00,2026-09-22T09:08:00-04:00,003,"two artificial lines
+second line",synthetic QA only
+SYN-MAYA-MISSING,A,P1,2026-09-22T08:00:00-04:00,,004,missing arrival,synthetic QA only
+SYN-MAYA-INVALID,A,P1,not-a-timestamp,2026-09-22T08:11:00-04:00,005,invalid dispatch,synthetic QA only
+SYN-MAYA-REVERSED,A,P1,2026-09-22T08:11:00-04:00,2026-09-22T08:00:00-04:00,006,reversed,synthetic QA only
+SYN-MAYA-DUP,A,P1,2026-09-22T08:00:00-04:00,2026-09-22T08:11:00-04:00,007,duplicate first,synthetic QA only
+SYN-MAYA-DUP,A,P1,2026-09-22T09:00:00-04:00,2026-09-22T09:11:00-04:00,008,duplicate second,synthetic QA only
+SYN-MAYA-NOZONE,,P1,2026-09-22T08:00:00-04:00,2026-09-22T08:11:00-04:00,009,missing zone,synthetic QA only
+SYN-MAYA-NOPRIORITY,B,,2026-09-22T08:00:00-04:00,2026-09-22T08:11:00-04:00,010,missing priority,synthetic QA only

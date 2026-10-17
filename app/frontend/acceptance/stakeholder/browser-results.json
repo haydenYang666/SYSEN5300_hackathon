@@ -1,0 +1,108 @@
+[
+  {
+    "case": "F7 keyboard drilldown",
+    "active": "Late completed responses",
+    "expected": "Late completed responses"
+  },
+  {
+    "case": "F2-F3 same-date comparison and back",
+    "zone": "B",
+    "date": "2026-09-22",
+    "late": 15,
+    "returnedHeading": [
+      "B · Sep 22 · slowest late responses"
+    ]
+  },
+  {
+    "case": "F1 malformed import",
+    "error": "maya-malformed-quote.csv: Unclosed quoted field starting at line 2, column 70.",
+    "retainedRows": 12000,
+    "snapshotByteIdentical": true,
+    "sha256": "2f718691ad7f9d0b7401943386a1a3409c86db913e9af04eaae157f0002fd3da"
+  },
+  {
+    "case": "F6 final-code snapshot restore",
+    "target": 10,
+    "reviewedZones": [
+      "A",
+      "B"
+    ],
+    "formalSignals": 8,
+    "zone": "B",
+    "date": "2026-09-22",
+    "late": 15
+  },
+  {
+    "case": "F6 failed API snapshot rollback",
+    "error": "The API rejected the request (HTTP 422).\nas_of must not be later than the server time.\nField(s): as_of",
+    "retainedRows": 12000
+  },
+  {
+    "case": "F4 sparse dates",
+    "chart": "All\nLast 21 observed dates\nLast 14 observed dates\nLast 7 observed dates\n3σ control limits\nbaseline days\nhover · click a day · ← → to step\nDaily late share\nBaseline p̄ 10.0%\nAbove UCL\nBelow LCL\nNo verdict yet\n\n2026-08-21 – 2026-09-18 · 7 observed dates across 29 calendar days. Missing dates or unavailable rates are gaps, not zero.\n\n0%\n5%\n10%\n15%\n20%\n25%\n30%\n35%\nSep 18 · 30.0%\nAug 21\nAug 24\nAug 28\nSep 1\nSep 5\nSep 10\nSep 18\nSep 18\nmonitoring\n30 / 100 late\n30.0%\nlimits 1.0% – 19.0%\n▲ High late rate",
+    "geometry": [
+      {
+        "class": "series",
+        "points": "59.03448275862069,220"
+      },
+      {
+        "class": "series",
+        "points": "137.24137931034483,204.80000000000004"
+      },
+      {
+        "class": "series",
+        "points": "241.51724137931035,182.00000000000003"
+      },
+      {
+        "class": "series",
+        "points": "345.7931034482759,144"
+      },
+      {
+        "class": "series",
+        "points": "450.0689655172414,235.20000000000002"
+      },
+      {
+        "class": "series",
+        "points": "580.4137931034483,212.4"
+      },
+      {
+        "class": "series",
+        "points": "788.9655172413793,68.00000000000004"
+      }
+    ]
+  },
+  {
+    "case": "F5 built-in public data and F7 example navigation",
+    "origin": "Public historical data",
+    "rows": 26209,
+    "active": "BROOKLYN · daily share of late arrivals (p chart)"
+  },
+  {
+    "case": "simulation regression",
+    "seed": 5300,
+    "step": 4,
+    "rows": 4200,
+    "zone": "A",
+    "date": "2026-09-21",
+    "late": 36,
+    "n": 100,
+    "rate": 0.36,
+    "upperDisplayed": "23.8%",
+    "backPreserved": true
+  },
+  {
+    "case": "simulation isolation",
+    "ordinaryDataset": "real_nyc_brooklyn_queens_sev2.csv",
+    "ordinaryRows": 26209,
+    "retained": true
+  },
+  {
+    "case": "snapshot exact browser roundtrip",
+    "sameExceptProvenance": true,
+    "provenance": {
+      "kind": "synthetic",
+      "label": "Jingyao synthetic planted-shift example",
+      "imported": true
+    }
+  }
+]

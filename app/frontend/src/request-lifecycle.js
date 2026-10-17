@@ -1,3 +1,6 @@
+import { parseAnalysisSession } from './analysis-session.js'
+import { UNKNOWN_SOURCE } from './provenance.js'
+
 // One operation spans every await, including example/file reads and analysis.
 // Aborting saves work; the generation guard also handles non-abortable File.text
 // and transports that finish after cancellation.
@@ -30,7 +33,7 @@ export function createRequestLifecycle({
     onBusy(false)
   }
 
-  async function analyzeCurrent(operation, { buildRequest, serverClock, mockScenario }, ctx) {
+  async function analyzeCurrent(operation, { buildRequest, serverClock, mockScenario, commitResult = onResult, preserveResultOnError = false }, ctx) {
     let req
     try {
       req = buildRequest(ctx)
@@ -41,11 +44,11 @@ export function createRequestLifecycle({
     try {
       const res = await analyze(req, mockScenario, { signal: operation.signal })
       if (!operation.isCurrent()) return false
-      onResult({ res, serverClock: serverClock ?? !req.as_of })
+      commitResult({ res, serverClock: serverClock ?? !req.as_of })
       return true
     } catch (error) {
       if (!operation.isCurrent()) return false
-      onResult(null)
+      if (!preserveResultOnError) onResult(null)
       const head = error.status === 422 ? 'The API rejected the request (HTTP 422).'
         : error.status === 503 ? 'The analysis service is not available yet (HTTP 503).'
         : 'Analysis failed.'
@@ -73,7 +76,8 @@ export function createRequestLifecycle({
         const text = await response.text()
         if (!operation.isCurrent()) return false
         const records = parseIncidents(text)
-        onDataset({ records, source: example.file, settings: example.settings })
+        onDataset({ records, source: example.file, settings: example.settings,
+          provenance: example.provenance ?? UNKNOWN_SOURCE })
         const ok = await analyzeCurrent(operation, { buildRequest, mockScenario }, { records, settings: example.settings })
         if (ok && operation.isCurrent() && openDashboard) onNavigate(operation)
         return ok
@@ -85,14 +89,24 @@ export function createRequestLifecycle({
       }
     },
 
-    async importFile(file) {
+    async importFile(file, options = {}) {
       if (!file) return false
       const operation = begin()
       try {
         const text = await file.text()
         if (!operation.isCurrent()) return false
+        if (/\.json$/i.test(file.name)) {
+          const session = parseAnalysisSession(text)
+          if (!options.buildRequest) throw new Error('Analysis snapshot import requires the analysis service.')
+          return await analyzeCurrent(operation, {
+            buildRequest: () => options.buildRequest(session),
+            serverClock: false, mockScenario: options.mockScenario,
+            preserveResultOnError: true,
+            commitResult: (result) => { onDataset(session); onResult(result) },
+          })
+        }
         const records = parseIncidents(text)
-        onDataset({ records, source: file.name })
+        onDataset({ records, source: file.name, provenance: UNKNOWN_SOURCE })
         return true
       } catch (error) {
         if (operation.isCurrent()) onErrors([`${file.name}: ${error.message}`])

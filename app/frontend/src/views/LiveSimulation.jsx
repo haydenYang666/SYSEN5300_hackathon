@@ -23,11 +23,22 @@ export default function LiveSimulation({ active }) {
   const [seed, setSeed] = useState('5300')
   const [view, setView] = useState('chart')
   const [focus, setFocus] = useState({ zone: '', date: '' })
+  const [selection, setSelection] = useState({ zone: '', date: '' })
+  const sectionRef = useRef(null)
+  const focusTarget = useRef(null)
   const controls = useRef(null)
   useEffect(() => {
     controller.setActive(active && !MOCK)
     return () => controller.setActive(false)
   }, [controller, active])
+
+  useEffect(() => {
+    if (!focusTarget.current) return
+    const node = sectionRef.current?.querySelector(`[data-focus-target="${focusTarget.current}"]`)
+      ?? sectionRef.current?.querySelector('[data-focus-target="chart"]')
+    focusTarget.current = null
+    node?.focus()
+  }, [view])
 
   const { session, result, busy, running, error } = state
   const disabled = MOCK || !active
@@ -37,15 +48,23 @@ export default function LiveSimulation({ active }) {
   const scope = (c) => `${c.usable_rows} usable / ${c.excluded_rows} excluded of ${c.total_rows}`
   async function reset() {
     const ok = await controller.reset(seed.trim() === '' ? NaN : Number(seed))
-    if (ok) { setView('chart'); setFocus({ zone: '', date: '' }) }
+    if (ok) { setView('chart'); setFocus({ zone: '', date: '' }); setSelection({ zone: '', date: '' }) }
   }
   function showIncidents(zone = '', date = '') {
     controller.pause()
+    focusTarget.current = 'incidents'
+    setSelection((current) => ({ zone: zone || current.zone, date: date || current.date }))
     setFocus({ zone, date }); setView('incidents')
   }
 
+  function backToChart() { focusTarget.current = 'incident-link'; setView('chart') }
+  function changeFocus(next) {
+    setFocus(next)
+    setSelection((current) => ({ zone: next.zone || current.zone, date: next.date }))
+  }
+
   return (
-    <section className="live-simulation" aria-label="Live synthetic simulation">
+    <section ref={sectionRef} className="live-simulation" aria-label="Live synthetic simulation">
       <div className="simulation-banner" role="note">
         <strong>SYNTHETIC SIMULATION — SIMULATED CLOCK</strong>
         <span>Invented completed responses for demonstration. This is not a live ambulance feed.</span>
@@ -107,13 +126,14 @@ export default function LiveSimulation({ active }) {
 
       {result && <>
         <div className="row">
-          <button disabled={view === 'chart'} onClick={() => setView('chart')}>Simulation chart</button>
+          <button disabled={view === 'chart'} onClick={backToChart}>Simulation chart</button>
           <button disabled={view === 'incidents'} onClick={() => showIncidents()}>Simulation incidents</button>
         </div>
         {view === 'chart' ? <ZoneMonitoring res={result} busy={busy || running} source={`Synthetic simulation · seed ${session.seed} · SIMULATED clock`} backLabel="↑ Simulation controls"
+          selection={selection} onSelectionChange={setSelection}
           onToggleReviewed={(zone) => controller.review(zone)} onViewIncidents={showIncidents}
           onBack={() => controls.current?.scrollIntoView({ block: 'start' })} />
-          : <IncidentReview res={result} focus={focus} onFocus={setFocus} onBack={() => setView('chart')} />}
+          : <IncidentReview res={result} focus={focus} onFocus={changeFocus} onBack={backToChart} />}
       </>}
     </section>
   )

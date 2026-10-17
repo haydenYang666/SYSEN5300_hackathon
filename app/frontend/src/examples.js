@@ -9,14 +9,18 @@ import nycUrl from '../../../data/real_nyc_brooklyn_queens_sev2.csv?url'
 const SYN = { selected_priority: 'P1', target_minutes: '10', baseline_end: '2026-09-21', as_of: '2026-10-01T00:00:00' }
 
 export const EXAMPLES = {
-  stable: { label: 'Synthetic · stable conditions (stable.csv)', file: 'stable.csv', url: stableUrl, settings: SYN },
-  zone_shift: { label: 'Synthetic · planted shift in zone A (zone_shift.csv)', file: 'zone_shift.csv', url: shiftUrl, settings: SYN },
+  stable: { label: 'Synthetic · stable conditions (stable.csv)', file: 'stable.csv', url: stableUrl, settings: SYN,
+    provenance: { kind: 'synthetic', label: 'Jingyao synthetic stable example' } },
+  zone_shift: { label: 'Synthetic · planted shift in zone A (zone_shift.csv)', file: 'zone_shift.csv', url: shiftUrl, settings: SYN,
+    provenance: { kind: 'synthetic', label: 'Jingyao synthetic planted-shift example' } },
   nyc: {
     label: 'REAL public data · NYC EMS, Brooklyn & Queens (real_nyc_brooklyn_queens_sev2.csv)',
     file: 'real_nyc_brooklyn_queens_sev2.csv', url: nycUrl,
+    provenance: { kind: 'public_historical', label: 'NYC Open Data EMS historical records; see repository data codebook' },
     settings: { selected_priority: '2', target_minutes: '10', baseline_end: '2026-08-21', as_of: '2026-10-02T00:00:00' },
   },
   edge_cases: { label: 'Synthetic · data-quality edge cases (edge_cases.csv)', file: 'edge_cases.csv', url: edgeUrl,
+    provenance: { kind: 'synthetic', label: 'Jingyao synthetic edge-case example' },
     settings: { ...SYN, as_of: '2026-10-01T12:00:00' } },
 }
 

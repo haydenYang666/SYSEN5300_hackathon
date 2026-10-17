@@ -18,10 +18,10 @@ export default function IncidentReview({ res, focus, onFocus, onBack }) {
   const [showAll, setShowAll] = useState(false)
 
   const incidents = res?.late_incidents ?? []
-  const zones = useMemo(() => [...new Set(incidents.map((i) => i.zone))].sort(), [incidents])
+  const zones = useMemo(() => [...new Set([...(res?.zone_baselines ?? []).map((b) => b.zone), ...incidents.map((i) => i.zone), focus.zone].filter(Boolean))].sort(), [res, incidents, focus.zone])
   const dates = useMemo(
-    () => [...new Set(incidents.filter((i) => !focus.zone || i.zone === focus.zone).map((i) => i.date))].sort(),
-    [incidents, focus.zone]
+    () => [...new Set([...incidents.filter((i) => !focus.zone || i.zone === focus.zone).map((i) => i.date), focus.date].filter(Boolean))].sort(),
+    [incidents, focus.zone, focus.date]
   )
 
   const rows = useMemo(() => {
@@ -55,7 +55,7 @@ export default function IncidentReview({ res, focus, onFocus, onBack }) {
   return (
     <>
       <section className="panel">
-        <div className="panel-head"><span className="pn">3</span><h2>Late completed responses</h2>
+        <div className="panel-head"><span className="pn">3</span><h2 tabIndex={-1} data-focus-target="incidents">Late completed responses</h2>
           <span className="aside">target {target} min · priority {res.meta.selected_priority}</span></div>
         <p className="muted">
           Responses that took longer than the {target}-minute target, from both the baseline and monitoring periods.
@@ -64,7 +64,7 @@ export default function IncidentReview({ res, focus, onFocus, onBack }) {
         <div className="row">
           <label className="inline">
             Zone
-            <select value={focus.zone} onChange={(e) => onFocus({ zone: e.target.value, date: '' })}>
+            <select value={focus.zone} onChange={(e) => onFocus({ ...focus, zone: e.target.value })}>
               <option value="">All zones</option>
               {zones.map((z) => <option key={z} value={z}>{z}</option>)}
             </select>
@@ -92,6 +92,7 @@ export default function IncidentReview({ res, focus, onFocus, onBack }) {
         </div>
 
         <p aria-live="polite"><b>{rows.length}</b> late response(s) shown.</p>
+        {rows.length === 0 && <p className="notice">No late responses match the current zone, date and search filters. The selected date has been kept.</p>}
         {rows.length > 0 && (
           <div className="scroll tall">
             <table>

@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import PChart, { shortDate } from '../components/PChart.jsx'
 import { BASELINE_STATUS, pct, reasonText, reasonsText, statusInfo } from '../status.js'
 import { showNy } from '../time.js'
+import { calendarScale, consecutiveRuns, observedSpan } from '../chart-dates.js'
 
 // Everything on this page is a value the API returned (interfaces v1.0) or a
 // count/filter/sort of the API's own items. `period` and the 'baseline'
@@ -16,12 +17,25 @@ function chartRows(base, monitoring, withBaseline) {
 
 const cellClass = (s) => (s === 'high' ? 'hi' : s === 'low' ? 'lo' : s === 'no_signal' ? 'ok' : 'na')
 
-export default function ZoneMonitoring({ res, busy, source, onToggleReviewed, onConfirmAll, onViewIncidents, onBack, backLabel = '← Back to data' }) {
+export default function ZoneMonitoring({ res, busy, source, onToggleReviewed, onConfirmAll, onViewIncidents, onBack, backLabel = '← Back to data', selection, onSelectionChange }) {
   const zones = useMemo(() => (res ? res.zone_baselines.map((b) => b.zone) : []), [res])
-  const [picked, setPicked] = useState('')
-  const [focusDate, setFocusDate] = useState('')
+  const [localSelection, setLocalSelection] = useState({ zone: '', date: '' })
+  const { zone: picked, date: focusDate } = selection ?? localSelection
   const [withBaseline, setWithBaseline] = useState(false)
   const zone = zones.includes(picked) ? picked : zones[0] ?? ''
+  const defaultDay = res
+    ? [...res.signals.filter((s) => s.zone === zone)].sort((a, b) => b.rate - a.rate)[0]?.date
+      ?? [...res.daily_points.filter((p) => p.zone === zone)].reverse().find((p) => p.late > 0)?.date
+    : undefined
+  const day = focusDate || defaultDay
+
+  // Tell the parent which default is actually displayed, so navigating away
+  // or exporting a session preserves it. Never replace an explicit date.
+  useEffect(() => {
+    if (selection != null && zone && (picked !== zone || focusDate !== (day ?? ''))) {
+      onSelectionChange?.({ zone, date: day ?? '' })
+    }
+  }, [selection, picked, focusDate, zone, day, onSelectionChange])
 
   if (!res) {
     return (
@@ -58,6 +72,7 @@ export default function ZoneMonitoring({ res, busy, source, onToggleReviewed, on
   const lowCount = (z) => signalsOf(z).filter((s) => s.status === 'low').length
   const lead = [...zones].sort((a, b) => highCount(b) - highCount(a))[0]
   const monDates = [...new Set(res.daily_points.map((p) => p.date))].sort()
+  const monSpan = observedSpan(res.daily_points)
   const baseDates = res.zone_baselines.flatMap((b) => b.daily.map((d) => d.date)).sort()
   const baseSpan = baseDates.length ? `${shortDate(baseDates[0])}–${shortDate(baseDates[baseDates.length - 1])}` : 'baseline'
   let title
@@ -68,10 +83,8 @@ export default function ZoneMonitoring({ res, busy, source, onToggleReviewed, on
   else title = 'No formal control-chart signals'
 
   // the day shown in the "slowest arrivals" panel
-  const zoneSignals = signalsOf(zone)
-  const defaultDay = [...zoneSignals].sort((a, b) => b.rate - a.rate)[0]?.date
-    ?? [...monitoring].reverse().find((p) => p.late > 0)?.date
-  const day = monitoring.some((p) => p.date === focusDate) ? focusDate : defaultDay
+  // Keep an explicitly chosen date even when the newly selected zone has no
+  // observation on it; silently jumping to its peak day changes the question.
   const dayPoint = monitoring.find((p) => p.date === day)
   const slowest = res.late_incidents
     .filter((i) => i.zone === zone && i.date === day)
@@ -80,13 +93,17 @@ export default function ZoneMonitoring({ res, busy, source, onToggleReviewed, on
   const scale = Math.max(target * 2, ...slowest.map((i) => i.response_minutes))
   const feed = [...res.signals].sort((a, b) => b.date.localeCompare(a.date) || a.zone.localeCompare(b.zone))
 
-  const pick = (z, date = '') => { setPicked(z); setFocusDate(date) }
+  const pick = (z, date = day ?? '') => {
+    const next = { zone: z, date }
+    if (selection == null) setLocalSelection(next)
+    onSelectionChange?.(next)
+  }
 
   return (
     <>
       <section className="headline">
         <div>
-          <div className="kick">{res.signals.length} signal{res.signals.length === 1 ? '' : 's'} · last {monDates.length} days</div>
+          <div className="kick">{res.signals.length} signal{res.signals.length === 1 ? '' : 's'} · {monDates.length} observed monitoring dates{monSpan.start && ` · ${shortDate(monSpan.start)}–${shortDate(monSpan.end)} (${monSpan.calendarDays} calendar days)`}</div>
           <h1>{title}</h1>
           <p>
             Priority {pr} calls, dispatch to first unit on scene, late if over {target} minutes. Each zone is compared
@@ -122,8 +139,9 @@ export default function ZoneMonitoring({ res, busy, source, onToggleReviewed, on
             : ['ok', 'no formal signals']
           const rates = pts.map((p) => p.rate).filter((r) => r != null)
           const rMin = Math.min(...rates), rMax = Math.max(...rates)
-          const sx = (i) => (pts.length < 2 ? 50 : (i / (pts.length - 1)) * 100)
+          const { x: sx } = calendarScale(pts, 0, 100)
           const sy = (r) => (rMax === rMin ? 17 : 30 - ((r - rMin) / (rMax - rMin)) * 26)
+          const sparkRuns = consecutiveRuns(pts)
           return (
             <button key={b.zone} className={b.zone === zone ? 'zcard on' : 'zcard'} onClick={() => pick(b.zone)} aria-pressed={b.zone === zone}>
               <span className="top"><span className="name">{b.zone}</span><span className={`ztag ${tag[0]}`}>{tag[1]}</span></span>
@@ -135,13 +153,15 @@ export default function ZoneMonitoring({ res, busy, source, onToggleReviewed, on
                   <span className="s">{lastSig ? `${pct(lastSig.rate)} vs ${lastSig.status === 'high' ? 'UCL ' + pct(lastSig.upper) : 'LCL ' + pct(lastSig.lower)}` : 'no formal signal'}</span></span>
                 {rates.length > 1 ? (
                   <svg className="spark" viewBox="0 0 100 34" preserveAspectRatio="none" aria-hidden="true">
-                    <polyline points={pts.map((p, i) => (p.rate == null ? null : `${sx(i)},${sy(p.rate)}`)).filter(Boolean).join(' ')} vectorEffect="non-scaling-stroke" />
+                    {sparkRuns.map((run) => run.length === 1
+                      ? <circle key={run[0].index} data-spark-segment="point" cx={sx(run[0].index)} cy={sy(run[0].point.rate)} r="1.6" style={{ fill: 'var(--series)' }} />
+                      : <polyline key={run[0].index} data-spark-segment="line" points={run.map(({ point, index }) => `${sx(index)},${sy(point.rate)}`).join(' ')} vectorEffect="non-scaling-stroke" />)}
                   </svg>
-                ) : <span className="metric"><span className="label">Monitoring</span><span className="v">{pts.length}</span><span className="s">days</span></span>}
+                ) : <span className="metric"><span className="label">Monitoring</span><span className="v">{pts.length}</span><span className="s">observed dates</span></span>}
               </span>
               {pts.length > 0 && (
                 <>
-                  <span className="strip-head label"><span>{shortDate(pts[0].date)}</span><span>signal strip · 1 cell = 1 day</span><span>{shortDate(pts[pts.length - 1].date)}</span></span>
+                  <span className="strip-head label"><span>{shortDate(pts[0].date)}</span><span>1 cell = 1 observed date; gaps omitted</span><span>{shortDate(pts[pts.length - 1].date)}</span></span>
                   <span className="strip">
                     {pts.map((p) => (
                       <span key={p.date} className={`cell ${cellClass(p.status)}${b.zone === zone && p.date === day ? ' sel' : ''}`}
@@ -159,7 +179,7 @@ export default function ZoneMonitoring({ res, busy, source, onToggleReviewed, on
       <div className="two">
         <section className="panel">
           <div className="panel-head">
-            <h2>{zone} · daily share of late arrivals (p chart)</h2>
+            <h2 data-focus-target="chart" tabIndex={-1}>{zone} · daily share of late arrivals (p chart)</h2>
             <span className="aside">limits widen and narrow with each day&rsquo;s call count</span>
           </div>
           <div className="row">
@@ -172,7 +192,7 @@ export default function ZoneMonitoring({ res, busy, source, onToggleReviewed, on
             <button onClick={onBack}>{backLabel}</button>
           </div>
           <PChart points={rows} pBar={base.p_bar} zone={zone} selected={day}
-            onPick={(p) => setFocusDate(p.date)}
+            onPick={(p) => pick(zone, p.date)}
             withBaseline={withBaseline} onToggleBaseline={() => setWithBaseline(!withBaseline)} />
           <p className="read">
             <b>How to read this:</b> each point is one day&rsquo;s share of priority-{pr} calls that took more than {target} minutes
@@ -215,7 +235,7 @@ export default function ZoneMonitoring({ res, busy, source, onToggleReviewed, on
           <div className="panel-head">
             <h2>{zone} · {shortDate(day)} · slowest late responses</h2>
             <span className="aside">{dayPoint.late} late of {dayPoint.n} · sorted by dispatch-to-scene minutes</span>
-            <button className="link right" onClick={() => onViewIncidents(zone, day)}>Open all in Incident Review →</button>
+            <button data-focus-target="incident-link" className="link right" onClick={() => onViewIncidents(zone, day)}>Open all in Incident Review →</button>
           </div>
           {slowest.length === 0 ? (
             <p className="muted">No late responses on this day.</p>
@@ -227,6 +247,14 @@ export default function ZoneMonitoring({ res, busy, source, onToggleReviewed, on
               ))}
             </div>
           )}
+        </section>
+      )}
+
+      {day && !dayPoint && (
+        <section className="panel">
+          <h2>{zone} · {shortDate(day)} · selected date</h2>
+          <p className="muted">No monitoring observation for this zone on {day}. No rate or verdict is available for this date.</p>
+          <button data-focus-target="incident-link" className="link" onClick={() => onViewIncidents(zone, day)}>Open all in Incident Review →</button>
         </section>
       )}
 

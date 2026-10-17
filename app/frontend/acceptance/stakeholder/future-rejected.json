@@ -1,0 +1,37 @@
+{
+  "schema": "response-late-rate-analysis",
+  "version": 1,
+  "records": [
+    {
+      "incident_id": "SYN-01-A-P1-000",
+      "zone": "A",
+      "priority": "P1",
+      "dispatched_at": "2026-09-01T10:02:21-04:00",
+      "on_scene_at": "2026-09-01T10:08:17-04:00"
+    }
+  ],
+  "source": "future-rejected.csv",
+  "provenance": {
+    "kind": "synthetic",
+    "label": "Jingyao synthetic planted-shift example"
+  },
+  "analysis": {
+    "timezone": "America/New_York",
+    "selected_priority": "P1",
+    "target_minutes": 10,
+    "baseline_end": "2026-09-21T00:00:00-04:00",
+    "as_of": "2099-10-01T00:00:00-04:00",
+    "reviewed_zones": [
+      "A",
+      "B"
+    ]
+  },
+  "selection": {
+    "zone": "B",
+    "date": "2026-09-22"
+  },
+  "focus": {
+    "zone": "B",
+    "date": "2026-09-22"
+  }
+}

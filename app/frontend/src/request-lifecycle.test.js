@@ -31,6 +31,14 @@ const reply = (req) => ({
 })
 const flush = async () => { for (let i = 0; i < 8; i++) await Promise.resolve() }
 
+const snapshot = () => ({
+  schema: 'response-late-rate-analysis', version: 1, records: [row('restored')], source: 'restored.csv',
+  provenance: { kind: 'synthetic', label: 'Synthetic test transport' },
+  analysis: { timezone: 'America/New_York', selected_priority: 'P1', target_minutes: 12,
+    baseline_end: '2026-09-21T00:00:00-04:00', as_of: '2026-10-01T00:00:00.123456-04:00', reviewed_zones: ['A'] },
+  selection: { zone: 'A', date: '2026-09-22' }, focus: { zone: 'B', date: '2026-09-22' },
+})
+
 function harness({ analyze = vi.fn(async (req) => reply(req)),
   fetchExample = vi.fn(async () => csvResponse('example')) } = {}) {
   const state = { records: [row('original')], source: 'original.csv',
@@ -61,6 +69,67 @@ function harness({ analyze = vi.fn(async (req) => reply(req)),
   return { lifecycle, state, analyze, fetchExample, buildRequest, editSettings,
     onBusy, onErrors, onDataset, onResult, onNavigate }
 }
+
+describe('snapshot imports are validated and recalculated before replacing the current session', () => {
+  const file = (value = snapshot()) => ({ name: 'analysis.json', text: async () => JSON.stringify(value) })
+  const options = (h) => ({ buildRequest: (session) => h.buildRequest(session, session.reviewedZones, session.asOf) })
+
+  it('restores exact analyzed parameters and metadata only after API success', async () => {
+    const pending = deferred()
+    const h = harness({ analyze: vi.fn(() => pending.promise) })
+    const prior = h.state.records
+    const loading = h.lifecycle.importFile(file(), options(h))
+    await flush()
+    expect(h.state.records).toBe(prior)
+    expect(h.onDataset).not.toHaveBeenCalled()
+    const request = h.analyze.mock.calls[0][0]
+    expect(request).toMatchObject({ target_minutes: 12, reviewed_zones: ['A'],
+      as_of: '2026-10-01T00:00:00.123456-04:00' })
+    pending.resolve(reply(request))
+    expect(await loading).toBe(true)
+    expect(h.state.source).toBe('restored.csv')
+    expect(h.state.result.res.meta.target_minutes).toBe(12)
+    expect(h.onDataset.mock.calls[0][0]).toMatchObject({ provenance: { kind: 'synthetic', imported: true },
+      selection: { zone: 'A', date: '2026-09-22' }, focus: { zone: 'B', date: '2026-09-22' } })
+  })
+
+  it.each([422, 503, 0])('retains the previous analysis and records after HTTP %s / network failure', async (status) => {
+    const h = harness({ analyze: vi.fn(async () => { throw Object.assign(new Error('rejected'), { status }) }) })
+    const prior = { res: { marker: 'previous successful analysis' }, serverClock: false }
+    h.state.result = prior
+    const records = h.state.records, settings = h.state.settings
+    expect(await h.lifecycle.importFile(file(), options(h))).toBe(false)
+    expect(h.state.result).toBe(prior)
+    expect(h.state.records).toBe(records)
+    expect(h.state.settings).toBe(settings)
+    expect(h.onDataset).not.toHaveBeenCalled()
+    expect(h.state.errors.join(' ')).toContain('rejected')
+  })
+
+  it('rejects malformed snapshots without analyzing or clearing the old result', async () => {
+    const h = harness()
+    h.state.result = { res: { marker: 'prior' } }
+    const prior = h.state.result
+    expect(await h.lifecycle.importFile(file({ ...snapshot(), version: 99 }), options(h))).toBe(false)
+    expect(h.state.result).toBe(prior)
+    expect(h.analyze).not.toHaveBeenCalled()
+    expect(h.onDataset).not.toHaveBeenCalled()
+  })
+
+  it('does not replace a newer manual import when an obsolete snapshot API call finishes', async () => {
+    const pending = deferred()
+    const h = harness({ analyze: vi.fn(() => pending.promise) })
+    const loading = h.lifecycle.importFile(file(), options(h))
+    await flush()
+    await h.lifecycle.importFile({ name: 'newer.csv', text: async () => toCsv([row('newer')]) })
+    pending.resolve(reply(h.analyze.mock.calls[0][0]))
+    expect(await loading).toBe(false)
+    expect(h.state.source).toBe('newer.csv')
+    expect(h.state.result).toBeNull()
+    expect(h.onDataset).toHaveBeenCalledTimes(1)
+    expect(h.onDataset.mock.calls[0][0].provenance.kind).toBe('user_upload')
+  })
+})
 
 describe('one lifecycle spans example fetching, CSV reading and API analysis', () => {
   it.each(['headers', 'body'])('a manual import wins over an example delayed at %s', async (stage) => {

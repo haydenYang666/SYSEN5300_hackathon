@@ -7,7 +7,7 @@ import { EXAMPLES } from '../examples.js'
 const PREVIEW_ROWS = 100
 const EMPTY_FORM = { incident_id: '', zone: '', priority: '', dispatched_at: '', on_scene_at: '' }
 
-export default function DataSettings({ records, source, settings, res, busy, onRecords, onSettings, onRun, onShowChart, onLoadExample, onInputIntent, onImportFile }) {
+export default function DataSettings({ records, source, settings, res, busy, onRecords, onSettings, onRun, onShowChart, onLoadExample, onInputIntent, onImportFile, onExportSession }) {
   const [form, setForm] = useState(null)
   const [over, setOver] = useState(false)
   const [example, setExample] = useState('zone_shift')
@@ -120,20 +120,21 @@ export default function DataSettings({ records, source, settings, res, busy, onR
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); chooseFile() } }}
         >
           <div className="big-ic" aria-hidden="true">⬆️</div>
-          <b>Drop a CSV here, or click to choose a file</b>
+          <b>Drop a CSV or analysis JSON here, or click to choose a file</b>
           <span className="muted">
             Columns <code>{COLUMNS.join(', ')}</code>; times with a UTC offset, e.g. <code>2026-09-21T08:15:00-04:00</code>.
-            Importing replaces the current session.
+            Importing replaces the current session. Analysis JSON restores saved settings and baseline confirmations, then recalculates the results.
           </span>
-          <input ref={fileRef} type="file" accept=".csv,text/csv" onChange={onPick} onClick={(e) => e.stopPropagation()} hidden />
+          <input ref={fileRef} type="file" accept=".csv,text/csv,.json,application/json" onChange={onPick} onClick={(e) => e.stopPropagation()} hidden />
         </div>
 
         <div className="row">
-          <button onClick={chooseFile}>Import CSV</button>
+          <button onClick={chooseFile}>Import CSV / analysis JSON</button>
           <button onClick={startForm} disabled={!!form}>
             Add completed response
           </button>
-          <button onClick={exportCsv} disabled={records.length === 0}>Export CSV</button>
+          <button onClick={exportCsv} disabled={records.length === 0}>Export CSV (records only)</button>
+          <button onClick={onExportSession} disabled={!res || busy}>Export analysis JSON</button>
         </div>
         <div className={records.length ? 'loaded' : 'muted'}>
           {records.length > 0 && <span aria-hidden="true">✅</span>}

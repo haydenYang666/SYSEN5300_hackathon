@@ -22,7 +22,7 @@
 # Shifeng edits this ledger; collaborators report checks for the final check-in.
 
 spec: SPEC.md
-updated: "2026-10-16"
+updated: "2026-10-17"
 
 tasks:
   - id: H-01
@@ -208,6 +208,27 @@ tasks:
       testme script and the H-03 tests both pass with no extra steps; git
       grep -i "api_key" finds no real key; the Devpost entry links the repo.
     result: ""
+
+  - id: H-10
+    title: Repair the seven verified synthetic stakeholder findings
+    points: "Quality follow-up - no additional rubric points"
+    status: done
+    owner: "Shifeng Hong + Codex"
+    started_at: "2026-10-17 11:39 -04:00"
+    owns: ["app/frontend/src/", "app/frontend/acceptance/stakeholder/", "docs/stakeholder-fixes.md", "SPEC.md"]
+    notes: >
+      Shifeng explicitly authorized all seven stakeholder fixes on October 17.
+      Preserve the existing UI layout, styling and colors; only make functional
+      controls and wording changes needed for these fixes. After reviewing the
+      completed acceptance report, Shifeng explicitly authorized check-in and
+      push on October 17. The statistics/API remain unchanged.
+    definition_of_done: >
+      Frontend tests, production build and pytest tests pass. Browser acceptance
+      with the real local API verifies malformed-import rollback, preserved
+      zone/date navigation, missing-date chart gaps, visible data provenance,
+      analysis-settings export/import parity and keyboard destination focus.
+      Record actual commands, outputs and screenshots in docs/stakeholder-fixes.md.
+    result: "H-10 accepted and check-in authorized by Shifeng: all seven findings repaired; 128 frontend tests, 175 backend tests (1 existing warning), production build, 7 CSV round trips, 6 real-API snapshot parity requests and browser acceptance pass. Stylesheet and backend unchanged. Evidence in docs/stakeholder-fixes.md."
 
   - id: H-09
     title: Optional live synthetic stream and accelerated monitoring
