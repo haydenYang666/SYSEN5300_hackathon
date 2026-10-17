@@ -1,17 +1,19 @@
-# Demo recording (H-05)
+# Demonstration (H-05)
 
-**Recording:** not recorded yet. *(Replace this line with the video link, the date, the commit or live URL shown, and who recorded it.)*
+**The demonstration is given live** on the deployed dashboard at the hackathon showcase. There is
+no recorded video. The event asks for the public repository plus a working prototype deployed live
+to Posit Connect, and the live dashboard is that demo.
 
-- [SCRIPT.md](SCRIPT.md) — the shot list and narration (about 3 minutes), with the tool's actual numbers.
-- [`demo/README.md`](../README.md) — the written step-by-step walkthrough of every dataset (Jingyao).
+To follow the same demonstration yourself:
+- [`demo/README.md`](../README.md): the written step-by-step walkthrough of every dataset (Jingyao), with exact settings and the numbers the tool shows.
+- [SCRIPT.md](SCRIPT.md): the order and talking points used for the live session (about 3 minutes), with the tool's actual numbers.
 
-Large video files are not committed. Upload the video (YouTube unlisted or a Google Drive link set to
-"anyone with the link") and put the link above. A small file under about 20 MB may be committed here instead.
+## Live session flow
 
-## Recording on a Mac
+1. Open the dashboard. A first visit loads the synthetic `zone_shift.csv` example and opens Zone Monitoring.
+2. Click **Confirm all usable baselines**. Zone A shows 8 high-signal days above its 25.1% limit; zone B shows none.
+3. Hover the chart and click September 22: 41 of 100 responses were late. The slowest arrivals appear below.
+4. On **Data & Settings**, use **Try an example** to load the real NYC extract (priority 2), then confirm Brooklyn and Queens: 8 high-signal days.
+5. Optionally load `edge_cases.csv` to show excluded rows, insufficient data and the provisional current day.
 
-1. Start the tool (`bash app/testme.sh`, or the deployed URL). Make sure the red MOCK banner is **not** shown.
-2. Press `Cmd + Shift + 5`, choose **Record Selected Portion**, and draw the box around the browser window.
-   Under **Options**, choose your microphone.
-3. Click **Record**, follow [SCRIPT.md](SCRIPT.md), then click the stop button in the menu bar.
-4. Watch it once. Every number spoken must match the screen.
+The numbers above are verified in the browser on the live site; see [`app/frontend/acceptance/`](../../app/frontend/acceptance/README.md).

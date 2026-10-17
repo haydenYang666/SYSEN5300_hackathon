@@ -1,6 +1,6 @@
-# Demo recording script (H-05), about 3 minutes
+# Live demonstration script (H-05), about 3 minutes
 
-Shot list and narration for the screen recording. Numbers below are the tool's
+Order and talking points for the live demonstration at the showcase (no video is recorded). Numbers below are the tool's
 actual output on the published datasets, verified in the browser
 ([`app/frontend/acceptance/`](../../app/frontend/acceptance/README.md), commit `e189c4b`).
 The step-by-step written walkthrough is [`demo/README.md`](../README.md) (Jingyao);

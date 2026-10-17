@@ -7,11 +7,11 @@ core powers a FastAPI service and React dashboard.
 
 **[Open the live dashboard](https://connect.systems-apps.com/content/fbeb8e54-b833-4b0f-8d87-8ca4617354a8/)** ·
 [Live API docs](https://connect.systems-apps.com/content/60e1dac5-58e2-42d7-b83d-4f95318a4a31/docs) ·
-[Four-dataset walkthrough](demo/README.md) · [Recording status and script](demo/recordings/README.md)
+[Four-dataset walkthrough](demo/README.md) · [Live demonstration plan](demo/recordings/README.md)
 
 The dashboard and API health endpoint were reachable without credentials on October 16, 2026;
-health reported `analysis_mode: real`. The recording page currently says the video has not yet
-been recorded. H-05 independent playback and H-07 teammate fresh-clone acceptance remain pending
+health reported `analysis_mode: real`. The demonstration is given live on this dashboard at the
+showcase; there is no recorded video. H-05 independent playback and H-07 teammate fresh-clone acceptance remain pending
 in the team ledger; available deployment evidence is linked below.
 
 ## Try the dashboard
