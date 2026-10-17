@@ -11,18 +11,33 @@ import DataSettings from './views/DataSettings.jsx'
 import ZoneMonitoring from './views/ZoneMonitoring.jsx'
 import IncidentReview from './views/IncidentReview.jsx'
 import LiveSimulation from './views/LiveSimulation.jsx'
+import Docs from './views/Docs.jsx'
+import About from './views/About.jsx'
 
 const PAGES = [
   ['data', 'Data & Settings'],
   ['zones', 'Zone Monitoring'],
   ['incidents', 'Incident Review'],
   ['simulation', 'Live Simulation'],
+  ['docs', 'Docs'],
+  ['about', 'About'],
 ]
+
+// Pages without the analysis context strip or error banner.
+const STANDALONE = ['simulation', 'docs', 'about']
+
+// ?page=docs (or any page key) opens that page directly, e.g. a link for judges.
+function initialPage() {
+  try {
+    const want = new URLSearchParams(window.location.search).get('page')
+    return PAGES.some(([key]) => key === want) ? want : 'data'
+  } catch { return 'data' }
+}
 
 const DEFAULT_SETTINGS = { selected_priority: '', target_minutes: '10', baseline_end: '', as_of: '' }
 
 export default function App() {
-  const [page, setPage] = useState('data')
+  const [page, setPage] = useState(initialPage)
   const [records, setRecords] = useState([])
   const [source, setSource] = useState('')
   const [provenance, setProvenance] = useState(UNKNOWN_SOURCE)
@@ -60,7 +75,7 @@ export default function App() {
       }
     },
     onNavigate: (operation) => setPage((current) => {
-      if (!operation.isCurrent() || current === 'simulation') return current
+      if (!operation.isCurrent() || STANDALONE.includes(current)) return current
       focusTarget.current = 'chart'
       return 'zones'
     }),
@@ -267,7 +282,7 @@ export default function App() {
               <span className="dot" />
               {MOCK ? 'mock calculations' : api.state === 'ok' ? `API · ${api.mode === 'real' ? 'real calculations' : api.mode ?? 'unknown'}` : api.state === 'down' ? 'API unreachable' : 'API · checking'}
             </span>
-            {page !== 'simulation' && res && <span className="pill">as of {asOfShort(res.meta.as_of)}</span>}
+            {!STANDALONE.includes(page) && res && <span className="pill">as of {asOfShort(res.meta.as_of)}</span>}
             <button className="pill theme" onClick={cycleTheme} title="Switch light / dark theme">
               {theme === 'dark' ? '☾ dark' : theme === 'light' ? '☀ light' : '◐ auto'}
             </button>
@@ -296,9 +311,9 @@ export default function App() {
       )}
 
       <div className="page">
-        {page !== 'simulation' && <ContextBar result={result} settings={settings} records={records} source={source} provenance={provenance} />}
+        {!STANDALONE.includes(page) && <ContextBar result={result} settings={settings} records={records} source={source} provenance={provenance} />}
 
-        {page !== 'simulation' && errors.length > 0 && (
+        {!STANDALONE.includes(page) && errors.length > 0 && (
           <div className="error" role="alert" ref={errorRef}>
             {errors.map((e, i) => <div key={i}>{e}</div>)}
           </div>
@@ -324,6 +339,8 @@ export default function App() {
           {page === 'incidents' && (
             <IncidentReview res={res} focus={focus} onFocus={changeFocus} onBack={() => navigate('zones', 'incident-link')} />
           )}
+          {page === 'docs' && <Docs onOpenExample={(k) => { setPage('data'); loadExample(k, true) }} onOpenAbout={() => setPage('about')} />}
+          {page === 'about' && <About onOpenDocs={() => setPage('docs')} />}
           <div hidden={page !== 'simulation'}>
             <LiveSimulation active={page === 'simulation'} />
           </div>
