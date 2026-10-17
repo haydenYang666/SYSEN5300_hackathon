@@ -124,7 +124,7 @@ tasks:
       same numbers through the core, API and UI; one data/ CSV agrees with the
       verified core. Invalid, insufficient, unreviewed and provisional cases
       remain explicit. Formal analysis has mock mode disabled.
-    result: "H-04 accepted: pytest 175 passed (1 warning); frontend 17 passed; original testme.sh starts real API and UI. Julian PR 2 and local recheck passed 37 HTTP calls across 7 CSVs. Pingchuan browser evidence at 3db4409 passed 110/110 dataset and 70/70 handoff checks; independently reviewed, source/data unchanged since e189c4b. See tests/fixtures/api/H04_CHECKIN.md. Deployment remains H-06."
+    result: "H-04 re-verified 2026-10-17 for the H-10/H-11 version: pytest 175 passed (1 existing warning), frontend 130 passed, production build passes; H-10 real-API browser and session-parity checks passed (docs/stakeholder-fixes.md). Original acceptance: Julian PR 2 recheck passed 37 HTTP calls across 7 CSVs; Pingchuan browser campaign passed 110/110 dataset and 70/70 handoff checks (last run live at 921fbac; not re-run for this version). See tests/fixtures/api/H04_CHECKIN.md. Deployment remains H-06."
 
   - id: H-05
     title: Demonstration of the tool on every test dataset
@@ -229,6 +229,26 @@ tasks:
       analysis-settings export/import parity and keyboard destination focus.
       Record actual commands, outputs and screenshots in docs/stakeholder-fixes.md.
     result: "H-10 accepted and check-in authorized by Shifeng: all seven findings repaired; 128 frontend tests, 175 backend tests (1 existing warning), production build, 7 CSV round trips, 6 real-API snapshot parity requests and browser acceptance pass. Stylesheet and backend unchanged. Evidence in docs/stakeholder-fixes.md."
+
+  - id: H-11
+    title: Clarify headline scope and the usable-rows share (stakeholder wording follow-up)
+    points: "Quality follow-up - no additional rubric points"
+    status: done
+    owner: "Shifeng Hong + Claude"
+    started_at: "2026-10-17 12:08 -04:00"
+    owns: ["app/frontend/src/views/ZoneMonitoring.jsx", "app/frontend/src/views/ZoneMonitoring.test.js", "app/frontend/src/views/DataSettings.jsx"]
+    notes: >
+      Shifeng authorized optional items 2 and 4 from the synthetic stakeholder
+      review on October 17 and authorized push the same day, together with the
+      H-04 re-verification record. Wording only: no layout,
+      style, color, statistics or API change. The Zone Monitoring headline is
+      labelled "Across all zones" so it is not read as the selected zone. The
+      "Usable" tile becomes "Rows usable" with one decimal, like the context bar,
+      and the page states that calls missing from the file cannot be detected.
+    definition_of_done: >
+      Frontend tests, production build and pytest tests pass; a render test
+      asserts the headline scope, the tile label and its one-decimal value.
+    result: "Wording follow-up done: 130 frontend tests (2 new), production build, 175 backend tests (1 existing warning) pass. Checked in a local mock-mode browser that the headline, tile and note render without layout change; a mock result with 6 excluded rows now shows 99.9% instead of 100%."
 
   - id: H-09
     title: Optional live synthetic stream and accelerated monitoring

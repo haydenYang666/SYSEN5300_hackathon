@@ -212,7 +212,7 @@ export default function DataSettings({ records, source, settings, res, busy, onR
               <div className="kpi"><div className="k">High signals</div><div className={high ? 'v critical' : 'v'}>{high}</div></div>
               <div className="kpi"><div className="k">Low signals</div><div className="v">{low}</div></div>
               <div className="kpi"><div className="k">No verdict yet</div><div className="v">{waiting}</div><div className="s">unreviewed, insufficient or today</div></div>
-              <div className="kpi"><div className="k">Usable rows</div><div className="v">{pct(res.quality.selected_priority.usable_fraction)}</div><div className="s">of this priority</div></div>
+              <div className="kpi"><div className="k">Usable rows</div><div className="v">{pct(res.quality.selected_priority.usable_fraction)}</div><div className="s">of imported rows, this priority</div></div>
             </div>
             <div className="row"><button className="primary" onClick={onShowChart}>View zone chart →</button></div>
           </div>

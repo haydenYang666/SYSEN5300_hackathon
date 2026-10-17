@@ -104,16 +104,17 @@ export default function ZoneMonitoring({ res, busy, source, onToggleReviewed, on
     <>
       <section className="headline">
         <div>
-          <div className="kick">{res.signals.length} signal{res.signals.length === 1 ? '' : 's'} · {monDates.length} observed monitoring dates{monSpan.start && ` · ${shortDate(monSpan.start)}–${shortDate(monSpan.end)} (${monSpan.calendarDays} calendar days)`}</div>
+          <div className="kick">Across all zones · {res.signals.length} signal{res.signals.length === 1 ? '' : 's'} · {monDates.length} observed monitoring dates{monSpan.start && ` · ${shortDate(monSpan.start)}–${shortDate(monSpan.end)} (${monSpan.calendarDays} calendar days)`}</div>
           <h1>{title}</h1>
           <p>
             Priority {pr} calls, dispatch to first unit on scene, late if over {target} minutes. Each zone is compared
-            with its own {baseSpan} baseline, not with the other zones.
+            with its own {baseSpan} baseline, not with the other zones. Rows usable counts imported rows that passed
+            the record checks; calls missing from the file cannot be detected.
           </p>
         </div>
         <div className="tiles">
           <div className="tile"><div className="label">Calls analysed</div><div className="v">{res.quality.selected_priority.usable_rows.toLocaleString('en-US')}</div></div>
-          <div className="tile"><div className="label">Usable</div><div className="v">{pct(res.quality.selected_priority.usable_fraction, 0)}</div></div>
+          <div className="tile" title="Share of imported rows that passed the record checks, not completeness of all calls"><div className="label">Rows usable</div><div className="v">{pct(res.quality.selected_priority.usable_fraction)}</div></div>
         </div>
       </section>
 

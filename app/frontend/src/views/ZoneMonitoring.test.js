@@ -50,6 +50,7 @@ describe('reviewed baseline does not turn a partial day into a verdict', () => {
   it('still renders a formal high signal with its zone headline and card', () => {
     const html = renderStatus('high')
     expect(html).toContain('<h1>A is running late more often than its own baseline</h1>')
+    expect(html).toContain('<div class="kick">Across all zones · ')
     expect(html).toContain('<span class="ztag hi">1 high day</span>')
     expect(html).toContain('data-signal="true"')
     expect(html).toContain('High late rate')
@@ -70,6 +71,21 @@ describe('persistent chart selection and observed-date wording', () => {
     expect(html).toContain(`class="cell ${selected.status === 'high' ? 'hi' : selected.status === 'low' ? 'lo' : selected.status === 'no_signal' ? 'ok' : 'na'} sel"`)
     expect(html).toContain('data-focus-target="chart" tabindex="-1"')
     expect(html).toContain('data-focus-target="incident-link"')
+  })
+
+  it('keeps the all-zone headline scope while another zone is selected', () => {
+    const html = renderSelection(demo, { zone: 'B', date: demo.daily_points.find((p) => p.zone === 'B').date })
+    expect(html).toContain('<div class="kick">Across all zones · ')
+    expect(html).toContain('B · daily share of late arrivals (p chart)')
+  })
+
+  it('describes the usable share as imported rows, not completeness of all calls', () => {
+    const html = renderSelection(demo, null)
+    // One decimal, like the context bar: excluded rows must not round up to 100%.
+    const share = `${(demo.quality.selected_priority.usable_fraction * 100).toFixed(1)}%`
+    expect(html).toContain(`<div class="label">Rows usable</div><div class="v">${share}</div>`)
+    expect(html).not.toContain('<div class="label">Usable</div>')
+    expect(html).toContain('calls missing from the file cannot be detected')
   })
 
   it('keeps an explicitly selected missing date with an honest empty message', () => {
