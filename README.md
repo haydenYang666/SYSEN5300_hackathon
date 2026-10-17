@@ -16,8 +16,9 @@ in the team ledger; available deployment evidence is linked below.
 
 ## Try the dashboard
 
-A first visit loads a randomly chosen showcase example (stable, shifted or NYC) and analyzes it
-with the real API. Read the source label: **Jingyao's three examples are synthetic; the NYC extract
+A first visit loads the synthetic `zone_shift.csv` example (a planted deterioration in zone A) and
+analyzes it with the real API; click **Confirm all usable baselines** to see its 8 high-signal days.
+Append `?example=stable`, `?example=nyc` or `?example=edge_cases` to open another example. Read the source label: **Jingyao's three examples are synthetic; the NYC extract
 is real public data**. Baselines start unreviewed. For an empty starting screen, append
 `?example=none` to the dashboard URL.
 
@@ -120,6 +121,15 @@ not establish that every response has been completed or logged. Counts cover usa
 completed responses**, excluding outstanding responses, cancellations and missing records; this
 selection can bias the observed rate.
 
+**Statistical limits to keep in mind.** The p chart assumes daily late counts vary binomially
+around the baseline proportion. Real dispatch data can vary more than that (overdispersion: demand
+surges, weather, staffing), which makes the limits too narrow and produces extra signals; with
+hundreds of responses per day this is likely in the NYC extract. A Laney p′ chart, which widens
+the limits by the observed between-day variation, is the natural next step. Each zone-day is also a
+separate 3-sigma test, so about 0.27% of in-control days will still cross a limit by chance (roughly
+one false alarm per 370 zone-days); a signal therefore means "review this day", not "this zone is
+failing". No run rules are applied.
+
 “No crossing signal found” is not proof of control or satisfactory performance. Individual late
 incidents are not automatically statistical outliers; baseline-relative signals do not rank zone
 quality or identify causes. The application supports operational review, without clinical triage,
@@ -171,6 +181,18 @@ NYC's zero app exclusions are after 1022 rows were removed upstream. Shifeng's t
 synthetic files are additional fixtures, not replacements for Jingyao's recording inputs.
 [Data index](data/README.md) · [Jingyao codebook](data/jingyao_synthetic/README.md) ·
 [NYC codebook](data/README_real_nyc.md) · [Shifeng codebook](data/shifeng_synthetic/README.md).
+
+## Team
+
+Chinese Can Fly, Cornell SYSEN 5300 Six Sigma Hackathon (on-campus track), Emergency Response prompt.
+
+| Member | Role |
+|---|---|
+| Shifeng Hong | Team lead; statistical core (`app/qc.py`), tests, interface contract, live simulation |
+| Jingyao | Synthetic datasets and codebook, demo walkthrough, documentation |
+| Julian Jiang | FastAPI backend, startup scripts, API tests |
+| Pingchuan Liu | React dashboard, browser acceptance tests, demo recording |
+| Hayden Yang | Real NYC dataset, Posit Connect deployment, repository and submission |
 
 ## Deployment and references
 
