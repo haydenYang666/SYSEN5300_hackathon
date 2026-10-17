@@ -278,13 +278,17 @@ export default function App() {
             ))}
           </div>
           <div className="pills">
-            <span className={`pill ${MOCK ? 'down' : api.state}`} title={MOCK ? 'Mock mode' : `API at ${API_URL}`}>
+            <span className={`pill ${MOCK ? 'down' : api.state}`}
+              title={MOCK ? 'Mock mode: mock calculations' : api.state === 'ok' ? `API at ${API_URL}: ${api.mode === 'real' ? 'real calculations' : api.mode ?? 'unknown mode'}` : `API at ${API_URL}`}>
               <span className="dot" />
-              {MOCK ? 'mock calculations' : api.state === 'ok' ? `API · ${api.mode === 'real' ? 'real calculations' : api.mode ?? 'unknown'}` : api.state === 'down' ? 'API unreachable' : 'API · checking'}
+              {MOCK ? 'mock' : api.state === 'ok' ? `API · ${api.mode ?? 'unknown'}` : api.state === 'down' ? 'API down' : 'API …'}
             </span>
-            {!STANDALONE.includes(page) && res && <span className="pill">as of {asOfShort(res.meta.as_of)}</span>}
-            <button className="pill theme" onClick={cycleTheme} title="Switch light / dark theme">
-              {theme === 'dark' ? '☾ dark' : theme === 'light' ? '☀ light' : '◐ auto'}
+            {!STANDALONE.includes(page) && res && (
+              <span className="pill" title={`Analysis as of ${asOfShort(res.meta.as_of)} (New York time)`}>as of {asOfShort(res.meta.as_of).slice(5)}</span>
+            )}
+            <button className="pill theme" onClick={cycleTheme} title={`Theme: ${theme}. Click to switch auto / light / dark`}
+              aria-label={`Theme: ${theme}. Switch theme`}>
+              {theme === 'dark' ? '☾' : theme === 'light' ? '☀' : '◐'}
             </button>
           </div>
         </div>
