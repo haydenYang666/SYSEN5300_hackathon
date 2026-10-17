@@ -20,5 +20,5 @@ export const EXAMPLES = {
     settings: { ...SYN, as_of: '2026-10-01T12:00:00' } },
 }
 
-/** Datasets eligible for the random first-visit default (edge cases look broken at first sight, by design). */
-export const SHOWCASE = ['stable', 'zone_shift', 'nyc']
+/** First-visit default: the planted shift shows signals within seconds. ?example=<key> overrides it. */
+export const DEFAULT_EXAMPLE = 'zone_shift'

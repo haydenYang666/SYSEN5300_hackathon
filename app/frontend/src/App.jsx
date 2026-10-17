@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { API_URL, MOCK, analyze, health, mockScenarios } from './api.js'
 import { parseIncidents } from './csv.js'
-import { EXAMPLES, SHOWCASE } from './examples.js'
+import { DEFAULT_EXAMPLE, EXAMPLES } from './examples.js'
 import { createRequestLifecycle } from './request-lifecycle.js'
 import { pct } from './status.js'
 import { TZ, nyLocalToIso, nyMidnightIso, showNy } from './time.js'
@@ -147,7 +147,7 @@ export default function App() {
       if (initialExample.current === undefined) {
         const want = new URLSearchParams(window.location.search).get('example')
         initialExample.current = want === 'none' ? null
-          : EXAMPLES[want] ? want : SHOWCASE[Math.floor(Math.random() * SHOWCASE.length)]
+          : EXAMPLES[want] ? want : DEFAULT_EXAMPLE
       }
       if (initialExample.current) loadExample(initialExample.current, true)
     }
