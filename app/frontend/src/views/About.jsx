@@ -146,7 +146,7 @@ export default function About({ onOpenDocs }) {
         <span className="label">SYSEN 5300 Six Sigma Hackathon · Fall 2026</span>
         <h1>Team Chinese Can Fly</h1>
         <p className="docs-lead">
-          Five people (and two AI teammates) built the Response Late-Rate Monitor in parallel. Each person owned a separate part of the repository,
+          Five people (and two AI teammates) built the EMS Response Monitor in parallel. Each person owned a separate part of the repository,
           tracked as tasks H-01 to H-10 in <a href={`${REPO}/blob/main/CONTRACT.yaml`} target="_blank" rel="noreferrer">CONTRACT.yaml</a>,
           and handed work over through one agreed interface.
         </p>

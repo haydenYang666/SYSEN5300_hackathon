@@ -262,11 +262,14 @@ export default function App() {
         <div className="nav-inner">
           <div className="brand">
             <span className="logo" aria-hidden="true">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M2 12h4l3-7 4 14 3-7h6" />
+              {/* stopwatch (response time) with a medical cross */}
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="13.5" r="8" stroke="currentColor" />
+                <path d="M9.5 2.5h5M12 2.5v3M18.4 6.2l1.6-1.6" stroke="currentColor" />
+                <path d="M12 9.6v7.8M8.1 13.5h7.8" strokeWidth="2.6" />
               </svg>
             </span>
-            <div><b>Response Late-Rate Monitor</b><span>EMS dispatch supervisor console</span></div>
+            <div><b>EMS Response Monitor</b><span>Dispatch supervisor console</span></div>
           </div>
           <div className="tabs">
             {PAGES.map(([key, label]) => (

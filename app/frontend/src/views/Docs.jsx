@@ -136,7 +136,7 @@ export default function Docs({ onOpenExample, onOpenAbout }) {
     <div className="docs">
       <header className="panel docs-hero" id="overview">
         <span className="label">Project documentation · SYSEN 5300 Six Sigma Hackathon · Team Chinese Can Fly</span>
-        <h1>Response Late-Rate Monitor</h1>
+        <h1>EMS Response Monitor</h1>
         <p className="docs-lead">
           A daily <b>p chart per zone</b> that tells an EMS dispatch supervisor which zone is late more often
           than its <i>own</i> normal, on which day, and which calls to review. It answers the on-campus prompt
